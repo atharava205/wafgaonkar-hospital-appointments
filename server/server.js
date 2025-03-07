@@ -1,61 +1,83 @@
-require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
-const nodemailer = require("nodemailer");
 const cors = require("cors");
-const bodyParser = require("body-parser");
+const dotenv = require("dotenv");
+const nodemailer = require("nodemailer");
+
+dotenv.config(); // Load environment variables from .env file
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json()); // Parse JSON requests
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, {
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ MongoDB Connected Successfully"))
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+
+// Define Schema & Model for Appointments
+const appointmentSchema = new mongoose.Schema({
+  name: String,
+  contact: String,
+  email: String,
+  dateTime: String,
 });
 
-const AppointmentSchema = new mongoose.Schema({
-    name: String,
-    contact: String,
-    email: String,
-    datetime: String
-});
-const Appointment = mongoose.model("Appointment", AppointmentSchema);
+const Appointment = mongoose.model("Appointment", appointmentSchema);
 
 // Nodemailer Setup
 const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
-// API to Handle Appointment Booking
+// API Route to Handle Appointments
 app.post("/book-appointment", async (req, res) => {
-    try {
-        const { name, contact, email, datetime } = req.body;
-        const newAppointment = new Appointment({ name, contact, email, datetime });
-        await newAppointment.save();
+  const { name, contact, email, dateTime } = req.body;
 
-        // Send Email Notification
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: "atharvawafgaonkar27@gmail.com",
-            subject: "New Appointment Booking",
-            text: `New appointment booked:\n\nName: ${name}\nContact: ${contact}\nEmail: ${email}\nDate & Time: ${datetime}`
-        };
+  if (!name || !contact || !email || !dateTime) {
+    return res.status(400).send("All fields are required.");
+  }
 
-        await transporter.sendMail(mailOptions);
+  try {
+    // Save appointment to MongoDB
+    const newAppointment = new Appointment({ name, contact, email, dateTime });
+    await newAppointment.save();
 
-        res.json({ message: "Appointment booked successfully!" });
-    } catch (error) {
-        res.status(500).json({ message: "Error booking appointment", error });
-    }
+    // Send Email Notification
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email, // Send confirmation to patient
+      subject: "Appointment Confirmation - Wafgaonkar Hospital",
+      text: `Hello ${name},\n\nYour appointment has been booked successfully!\nDate & Time: ${dateTime}\n\nThank you,\nWafgaonkar Hospital`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("❌ Email Sending Error:", error);
+      } else {
+        console.log("📩 Email Sent:", info.response);
+      }
+    });
+
+    res.status(201).send("✅ Appointment booked successfully!");
+  } catch (error) {
+    console.error("❌ Error saving appointment:", error);
+    res.status(500).send("❌ Server error, please try again later.");
+  }
 });
 
-app.listen(5000, () => console.log("Server running on port 5000"));
-app.get("/", (req, res) => {
-    res.send("Server is running!");
+// Start Server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
