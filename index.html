@@ -3,44 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wafgaonkar Hospital Appointment</title>
+    <title>Book an Appointment</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
         form { max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; }
-        input, button { width: 100%; margin: 10px 0; padding: 10px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; }
     </style>
 </head>
 <body>
+
     <h2>Book an Appointment</h2>
     <form id="appointmentForm">
-        <input type="text" id="name" placeholder="Patient Name" required>
+        <input type="text" id="name" placeholder="Your Name" required>
         <input type="text" id="contact" placeholder="Contact Number" required>
         <input type="email" id="email" placeholder="Email" required>
-        <input type="datetime-local" id="datetime" required>
-        <button type="submit">Book Appointment</button>
+        <input type="datetime-local" id="dateTime" required>
+        <button type="submit">Book Now</button>
     </form>
+
     <p id="responseMessage"></p>
 
     <script>
         document.getElementById("appointmentForm").addEventListener("submit", async function(event) {
             event.preventDefault();
+            
+            const name = document.getElementById("name").value;
+            const contact = document.getElementById("contact").value;
+            const email = document.getElementById("email").value;
+            const dateTime = document.getElementById("dateTime").value;
 
-            const appointment = {
-                name: document.getElementById("name").value,
-                contact: document.getElementById("contact").value,
-                email: document.getElementById("email").value,
-                datetime: document.getElementById("datetime").value
-            };
-
-            const response = await fetch("https://wafgaonkar-hospital.onrender.com/book-appointment", {
+            const response = await fetch("https://wafgaonkar-hospital-appointments.onrender.com/book-appointment", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(appointment)
+                body: JSON.stringify({ name, contact, email, dateTime })
             });
 
-            const result = await response.json();
-            document.getElementById("responseMessage").textContent = result.message;
+            const message = await response.text();
+            document.getElementById("responseMessage").innerText = message;
         });
     </script>
+
 </body>
 </html>
