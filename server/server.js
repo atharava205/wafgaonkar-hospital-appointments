@@ -1,83 +1,98 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const nodemailer = require("nodemailer");
-
-dotenv.config(); // Load environment variables from .env file
+const bodyParser = require("body-parser");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
-// Middleware
 app.use(cors());
-app.use(express.json()); // Parse JSON requests
+app.use(bodyParser.json());
 
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ MongoDB Connected Successfully"))
-  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log("✅ Connected to MongoDB"))
+    .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-// Define Schema & Model for Appointments
+// Appointment Schema
 const appointmentSchema = new mongoose.Schema({
-  name: String,
-  contact: String,
-  email: String,
-  dateTime: String,
+    name: String,
+    contact: String,
+    email: String,
+    date: String,
+    time: String,
 });
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 
-// Nodemailer Setup
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Email Function
+async function sendEmail(patientEmail, patientDetails) {
+    try {
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
 
-// API Route to Handle Appointments
+        const emailContent = `
+            <h2>Appointment Details</h2>
+            <table border="1" cellspacing="0" cellpadding="10">
+                <tr><th>Field</th><th>Details</th></tr>
+                <tr><td><b>Name</b></td><td>${patientDetails.name}</td></tr>
+                <tr><td><b>Contact Number</b></td><td>${patientDetails.contact}</td></tr>
+                <tr><td><b>Email</b></td><td>${patientDetails.email}</td></tr>
+                <tr><td><b>Appointment Date</b></td><td>${patientDetails.date}</td></tr>
+                <tr><td><b>Appointment Time</b></td><td>${patientDetails.time}</td></tr>
+            </table>
+        `;
+
+        // Email to Patient
+        const mailOptionsForPatient = {
+            from: process.env.EMAIL_USER,
+            to: patientEmail,
+            subject: "Appointment Confirmation - Wafgaonkar Hospital",
+            html: `<p>Dear ${patientDetails.name},</p>
+                   <p>Your appointment has been booked successfully.</p>
+                   ${emailContent}
+                   <p>Thank you!</p>`,
+        };
+
+        // Email to Admin
+        const mailOptionsForAdmin = {
+            from: process.env.EMAIL_USER,
+            to: "atharvawafgaonkar27@gmail.com",
+            subject: "New Appointment Received",
+            html: `<p>A new appointment has been booked with the following details:</p>
+                   ${emailContent}
+                   <p>Please check the appointment records.</p>`,
+        };
+
+        await transporter.sendMail(mailOptionsForPatient);
+        await transporter.sendMail(mailOptionsForAdmin);
+        console.log("✅ Emails sent successfully!");
+
+    } catch (error) {
+        console.error("❌ Error sending email:", error);
+    }
+}
+
+// API Route to Book Appointment
 app.post("/book-appointment", async (req, res) => {
-  const { name, contact, email, dateTime } = req.body;
+    try {
+        const { name, contact, email, date, time } = req.body;
+        const newAppointment = new Appointment({ name, contact, email, date, time });
+        await newAppointment.save();
 
-  if (!name || !contact || !email || !dateTime) {
-    return res.status(400).send("All fields are required.");
-  }
+        await sendEmail(email, { name, contact, email, date, time });
 
-  try {
-    // Save appointment to MongoDB
-    const newAppointment = new Appointment({ name, contact, email, dateTime });
-    await newAppointment.save();
-
-    // Send Email Notification
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email, // Send confirmation to patient
-      subject: "Appointment Confirmation - Wafgaonkar Hospital",
-      text: `Hello ${name},\n\nYour appointment has been booked successfully!\nDate & Time: ${dateTime}\n\nThank you,\nWafgaonkar Hospital`,
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("❌ Email Sending Error:", error);
-      } else {
-        console.log("📩 Email Sent:", info.response);
-      }
-    });
-
-    res.status(201).send("✅ Appointment booked successfully!");
-  } catch (error) {
-    console.error("❌ Error saving appointment:", error);
-    res.status(500).send("❌ Server error, please try again later.");
-  }
+        res.status(201).json({ message: "Appointment booked successfully!" });
+    } catch (error) {
+        res.status(500).json({ error: "❌ Server Error", details: error.message });
+    }
 });
 
 // Start Server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
