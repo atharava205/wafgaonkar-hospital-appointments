@@ -106,12 +106,13 @@
             <input type="date" id="date" required>
             <input type="time" id="time" required>
             <button type="submit">Book Appointment</button>
+            <p id="responseMessage" style="color: white; margin-top: 10px;"></p>
         </form>
     </div>
-    <script>
+   <script>
     document.getElementById("appointmentForm").addEventListener("submit", async function(event) {
         event.preventDefault(); // Prevents page refresh
-        
+
         const appointmentData = {
             name: document.getElementById("name").value,
             contact: document.getElementById("contact").value,
@@ -122,6 +123,8 @@
 
         console.log("Sending data:", appointmentData); // Debugging log
 
+        const responseMessage = document.getElementById("responseMessage"); // Get message element
+
         try {
             const response = await fetch("https://wafgaonkar-hospital-appointments.onrender.com/book-appointment", {
                 method: "POST",
@@ -130,10 +133,16 @@
             });
 
             const result = await response.json();
-            alert(result.message); // Show success message
+            
+            // ✅ Show message on page instead of alert
+            responseMessage.innerText = result.message;
+            responseMessage.style.color = "lightgreen"; // Green color for success
         } catch (error) {
             console.error("Error booking appointment:", error);
-            alert("Failed to book appointment. Try again.");
+            
+            // ❌ Show error message
+            responseMessage.innerText = "Failed to book appointment. Try again.";
+            responseMessage.style.color = "red"; // Red color for error
         }
     });
 </script>
