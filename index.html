@@ -5,14 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book Appointment | Wafgaonkar Hospital</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             background-color: #000; /* All Black Background */
             display: flex;
-            justify-content: center;
-            align-items: center;
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
             height: 100vh;
-            margin: 0;
         }
 
         .container {
@@ -48,11 +53,13 @@
             font-size: 16px;
             background-color: #000; /* Fully Black Input Fields */
             color: white; /* White Text */
+            text-align: center; /* Center the text */
         }
 
         input::placeholder {
             color: white; /* White placeholder text */
             opacity: 0.8;
+            text-align: center; /* Center placeholder text */
         }
 
         input:focus {
@@ -90,7 +97,7 @@
 </head>
 <body>
     <div class="container">
-        <div class="hospital-name">🏥 Wafgaonkar Hospital</div>
+        <div class="hospital-name">🏥 Wafgaonkar Hospital 🏥</div>
         <h2>Book an Appointment</h2>
         <form id="appointmentForm">
             <input type="text" id="name" placeholder="Patient Name" required>
@@ -101,28 +108,5 @@
             <button type="submit">Book Appointment</button>
         </form>
     </div>
-
-    <script>
-        document.getElementById("appointmentForm").addEventListener("submit", async function(event) {
-            event.preventDefault();
-            
-            const appointmentData = {
-                name: document.getElementById("name").value,
-                contact: document.getElementById("contact").value,
-                email: document.getElementById("email").value,
-                date: document.getElementById("date").value,
-                time: document.getElementById("time").value,
-            };
-
-            const response = await fetch("https://wafgaonkar-hospital-appointments.onrender.com/book-appointment", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(appointmentData),
-            });
-
-            const result = await response.json();
-            alert(result.message);
-        });
-    </script>
 </body>
 </html>
