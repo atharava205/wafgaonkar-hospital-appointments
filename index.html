@@ -108,5 +108,34 @@
             <button type="submit">Book Appointment</button>
         </form>
     </div>
+    <script>
+    document.getElementById("appointmentForm").addEventListener("submit", async function(event) {
+        event.preventDefault(); // Prevents page refresh
+        
+        const appointmentData = {
+            name: document.getElementById("name").value,
+            contact: document.getElementById("contact").value,
+            email: document.getElementById("email").value,
+            date: document.getElementById("date").value,
+            time: document.getElementById("time").value,
+        };
+
+        console.log("Sending data:", appointmentData); // Debugging log
+
+        try {
+            const response = await fetch("https://wafgaonkar-hospital-appointments.onrender.com/book-appointment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(appointmentData),
+            });
+
+            const result = await response.json();
+            alert(result.message); // Show success message
+        } catch (error) {
+            console.error("Error booking appointment:", error);
+            alert("Failed to book appointment. Try again.");
+        }
+    });
+</script>
 </body>
 </html>
