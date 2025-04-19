@@ -1,3 +1,5 @@
+const twilio = require("twilio");
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
