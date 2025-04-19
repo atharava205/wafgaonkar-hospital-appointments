@@ -1,22 +1,24 @@
-const twilio = require("twilio");
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
 const bodyParser = require("body-parser");
+const twilio = require("twilio");
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Connect to MongoDB
+// ✅ Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log("✅ Connected to MongoDB"))
     .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-// Appointment Schema
+// ✅ Twilio Setup
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+// ✅ MongoDB Schema
 const appointmentSchema = new mongoose.Schema({
     name: String,
     contact: String,
@@ -27,7 +29,7 @@ const appointmentSchema = new mongoose.Schema({
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 
-// Email Function
+// ✅ Email Function
 async function sendEmail(patientEmail, patientDetails) {
     try {
         const transporter = nodemailer.createTransport({
@@ -80,21 +82,41 @@ async function sendEmail(patientEmail, patientDetails) {
     }
 }
 
-// API Route to Book Appointment
+// ✅ SMS Function using Twilio
+async function sendSMS(contactNumber, messageBody) {
+    try {
+        await twilioClient.messages.create({
+            body: messageBody,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: `+91${contactNumber}`  // Replace +91 with desired country code
+        });
+        console.log("✅ SMS sent successfully!");
+    } catch (error) {
+        console.error("❌ Error sending SMS:", error.message);
+    }
+}
+
+// ✅ Appointment Route
 app.post("/book-appointment", async (req, res) => {
     try {
         const { name, contact, email, date, time } = req.body;
         const newAppointment = new Appointment({ name, contact, email, date, time });
         await newAppointment.save();
 
+        // Send email
         await sendEmail(email, { name, contact, email, date, time });
+
+        // Send SMS
+        const smsText = `Hi ${name}, your appointment at Wafgaonkar Hospital is confirmed for ${date} at ${time}.`;
+        await sendSMS(contact, smsText);
 
         res.status(201).json({ message: "Appointment booked successfully!" });
     } catch (error) {
-        res.status(500).json({ error: "❌ Server Error", details: error.message });
+        console.error("❌ Server Error:", error.message);
+        res.status(500).json({ error: "Server Error", details: error.message });
     }
 });
 
-// Start Server
+// ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
