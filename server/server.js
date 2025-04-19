@@ -82,21 +82,21 @@ async function sendEmail(patientEmail, patientDetails) {
     }
 }
 
-// ✅ SMS Function using Twilio
-async function sendSMS(contactNumber, messageBody) {
+// ✅ WhatsApp Message Function via Twilio
+async function sendWhatsApp(contactNumber, messageBody) {
     try {
         await twilioClient.messages.create({
             body: messageBody,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: `+91${contactNumber}`  // Replace +91 with desired country code
+            from: "whatsapp:+14155238886", // Twilio Sandbox WhatsApp Number
+            to: `whatsapp:+91${contactNumber}` // User's WhatsApp number
         });
-        console.log("✅ SMS sent successfully!");
+        console.log("✅ WhatsApp message sent successfully!");
     } catch (error) {
-        console.error("❌ Error sending SMS:", error.message);
+        console.error("❌ Error sending WhatsApp message:", error.message);
     }
 }
 
-// ✅ Appointment Route
+// ✅ Appointment Booking Route
 app.post("/book-appointment", async (req, res) => {
     try {
         const { name, contact, email, date, time } = req.body;
@@ -106,9 +106,9 @@ app.post("/book-appointment", async (req, res) => {
         // Send email
         await sendEmail(email, { name, contact, email, date, time });
 
-        // Send SMS
-        const smsText = `Hi ${name}, your appointment at Wafgaonkar Hospital is confirmed for ${date} at ${time}.`;
-        await sendSMS(contact, smsText);
+        // Send WhatsApp message
+        const message = `Hi ${name}, your appointment at Wafgaonkar Hospital is confirmed for ${date} at ${time}.`;
+        await sendWhatsApp(contact, message);
 
         res.status(201).json({ message: "Appointment booked successfully!" });
     } catch (error) {
